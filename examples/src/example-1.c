@@ -16,6 +16,7 @@ int main(void) {
         .spacing = 1,
         .line_spacing = 1,
         .color = DARKGRAY,
+        .alignment = {0},
     });
     TextBoxProps tb_props = text_box_props_get(tb);
     char const * dummy = text_box_text_update(tb, long_text);

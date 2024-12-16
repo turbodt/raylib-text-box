@@ -37,17 +37,15 @@ TARGETS = $(patsubst $(SRC_DIR)/example%.c, $(TARGET_DIR)/example%, $(TARGET_SOU
 
 all: $(TARGETS)
 
-$(TARGETS): $(OBJS) $(TARGET_DIR)
-	$(CC) $(OBJS) $(INCLUDES) -o $@ $(LDFLAGS)
+$(TARGETS): $(TARGET_DIR)/%: $(OBJ_DIR)/%.o
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(TARGET_DIR):
-	mkdir -p $(TARGET_DIR)
-
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET)
+	rm -rf $(OBJ_DIR) $(TARGETS)
 
 .PHONY: all clean
