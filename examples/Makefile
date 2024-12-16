@@ -1,13 +1,14 @@
-TARGET_DIR = ../bin
+EXTERNAL_DIR ?= $(realpath ../external)
+TARGET_DIR ?= $(realpath ../bin)
 SRC_DIR = ./src
 
 EXTERNAL_INCLUDES = \
-	-I../external/raylib/include \
+	-I${EXTERNAL_DIR}/raylib/include \
 	-I../include \
 
 EXTERNAL_LIBRARIES = \
 	-L../lib -lraylib-text-box \
-	-L../external/raylib/lib -lraylib \
+	-L${EXTERNAL_DIR}/raylib/lib -lraylib \
 
 LOCAL_INCLUDES = \
 	-I$(SRC_DIR) \

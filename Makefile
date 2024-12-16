@@ -1,14 +1,15 @@
 LIB_NAME ?= raylib-text-box
-LIB_DIR ?= ./lib
-BIN_DIR = ./bin
+LIB_DIR ?= $(realpath ./lib)
+EXTERNAL_DIR ?= $(realpath ./external)
+BIN_DIR ?= $(realpath ./)/bin
 SRC_DIR = ./src
 
 
 EXTERNAL_LIBRARIES = \
-	-L./external/raylib/lib -lraylib \
+	-L${EXTERNAL_DIR}/raylib/lib -lraylib \
 
 EXTERNAL_INCLUDES = \
-	-I./external/raylib/include \
+	-I${EXTERNAL_DIR}/raylib/include \
 
 LOCAL_INCLUDES = \
 	-I${SRC_DIR} \
@@ -50,7 +51,11 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 examples:
-	$(MAKE) -C ./examples MAIN_DIR=$(realpath ./)
+	mkdir -p $(BIN_DIR)
+	$(MAKE) -C ./examples\
+		MAIN_DIR=$(realpath ./)\
+		TARGET_DIR=$(BIN_DIR)\
+		EXTERNAL_DIR=$(EXTERNAL_DIR)
 
 clean:
 	$(MAKE) clean -C ./examples MAIN_DIR=$(realpath ./)
