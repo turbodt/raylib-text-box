@@ -7,12 +7,22 @@
 
 
 typedef struct TextBox TextBox;
+typedef enum TextBoxAlignment {
+    TEXT_BOX_ALIGNMENT__UNDEF = 1,
+    TEXT_BOX_ALIGNMENT__START = 1,
+    TEXT_BOX_ALIGNMENT__CENTER,
+    TEXT_BOX_ALIGNMENT__END,
+} TextBoxAlignment;
 typedef struct TextBoxProps {
     int font_size;
     int spacing;
     int line_spacing;
     Font font;
     Color color;
+    struct {
+        TextBoxAlignment horizontal;
+        TextBoxAlignment vertical;
+    } alignment;
 } TextBoxProps;
 
 

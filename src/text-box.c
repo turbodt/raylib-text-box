@@ -146,7 +146,35 @@ inline int text_box_display_next(TextBox *impl) {
 
 
 int text_box_render(TextBox *impl) {
-    draw_chunk_at(&impl->props, impl->current_chunk, impl->tl_pos);
+    float margin_h = impl->box_size.x - impl->current_chunk.size.x;
+    float margin_v = impl->box_size.y - impl->current_chunk.size.y;
+
+    margin_h = MAX(margin_h, 0);
+    margin_v = MAX(margin_v, 0);
+
+    Vector2 tl_pos = impl->tl_pos;
+    switch (impl->props.alignment.horizontal) {
+        case TEXT_BOX_ALIGNMENT__CENTER:
+            tl_pos.x += margin_h / 2;
+        break;
+        case TEXT_BOX_ALIGNMENT__END:
+            tl_pos.x += margin_h;
+        break;
+        default:
+        break;
+    };
+    switch (impl->props.alignment.vertical) {
+        case TEXT_BOX_ALIGNMENT__CENTER:
+            tl_pos.y += margin_v / 2;
+        break;
+        case TEXT_BOX_ALIGNMENT__END:
+            tl_pos.y += margin_v;
+        break;
+        default:
+        break;
+    };
+
+    draw_chunk_at(&impl->props, impl->current_chunk, tl_pos);
     return 0; // TODO: Return error code
 };
 
