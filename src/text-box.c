@@ -360,12 +360,6 @@ ChunkInfo calcule_line(
             props->font_size
         );
 
-        tentative.size.x += cp_width;
-        if (is_first_printable_char) {
-            is_first_printable_char = 0;
-        } else {
-            tentative.size.x += props->spacing;
-        }
         tentative.size.y = MAX(tentative.size.y, cp_height);
         tentative.index_count += cp_byte_count;
 
@@ -373,7 +367,13 @@ ChunkInfo calcule_line(
             ret = tentative;
             line_must_end = 1;
             continue;
+        } else if (is_first_printable_char) {
+            is_first_printable_char = 0;
+        } else {
+            tentative.size.x += props->spacing;
         }
+
+        tentative.size.x += cp_width;
     }
 
     if (ret.index_count == 0) {
