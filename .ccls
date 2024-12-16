@@ -1,0 +1,3 @@
+gcc
+%c -I./external/raylib/include
+-std=c11
