@@ -22,6 +22,7 @@ typedef struct TextBoxProps {
     struct {
         TextBoxAlignment horizontal;
         TextBoxAlignment vertical;
+        TextBoxAlignment line;
     } alignment;
 } TextBoxProps;
 

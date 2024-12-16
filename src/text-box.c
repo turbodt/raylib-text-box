@@ -207,6 +207,21 @@ void draw_chunk_at(
             chunk.size.x,
             &chunk.text[index_count]
         );
+
+        float line_margin = chunk.size.x - line_info.size.x;
+        line_margin = MAX(line_margin, 0);
+
+        switch (props->alignment.line) {
+            case TEXT_BOX_ALIGNMENT__CENTER:
+                curr_pos.x += line_margin / 2;
+            break;
+            case TEXT_BOX_ALIGNMENT__END:
+                curr_pos.x += line_margin;
+            break;
+            default:
+            break;
+        };
+
         draw_line_at(props, line_info, curr_pos);
         index_count += line_info.index_count;
         curr_pos.x = tl_pos.x;
