@@ -93,6 +93,15 @@ inline int text_box_display_is_last(TextBox const *impl) {
 };
 
 
+inline TextBoxEffect const * text_box_effect_getc(TextBox const *impl) {
+    return impl->props.effect;
+};
+
+
+inline TextBoxEffect * text_box_effect_get(TextBox *impl) {
+    return impl->props.effect;
+};
+
 inline int text_box_props_set(TextBox *impl, TextBoxProps props) {
     int should_recalcule =
         props.font_size != impl->props.font_size
