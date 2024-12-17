@@ -56,6 +56,8 @@ size_t text_box_display_get_byte_count(TextBox const *);
 size_t text_box_display_get_byte_offset(TextBox const *);
 size_t text_box_display_get_next_byte_offset(TextBox const *);
 int text_box_display_is_last(TextBox const *);
+TextBoxEffect const * text_box_effect_getc(TextBox const *);
+TextBoxEffect * text_box_effect_get(TextBox *);
 
 int text_box_props_set(TextBox *, TextBoxProps);
 UPTR(char const) text_box_text_update(TextBox *, UPTR(char const));

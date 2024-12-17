@@ -25,6 +25,11 @@ INCLUDES = $(EXTERNAL_INCLUDES) $(LOCAL_INCLUDES)
 LDFLAGS = $(EXTERNAL_LIBRARIES)
 
 SRC = $(wildcard $(SRC_DIR)/*.c)
+ifeq ($(WITHOUT_EFFECTS),1)
+    CFLAGS += -DRAYLIB_TEXT_BOX_WITHOUT_EFFECTS
+else
+    SRC += $(wildcard $(SRC_DIR)/effects/*.c)
+endif
 
 OBJ_DIR = build
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC))
