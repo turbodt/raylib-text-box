@@ -68,19 +68,19 @@ inline TextBoxProps text_box_props_get(TextBox const *impl) {
 };
 
 
-inline size_t text_box_display_get_byte_len(TextBox const *impl) {
+inline size_t text_box_display_get_byte_count(TextBox const *impl) {
     return impl->current_chunk.count;
 };
 
 
-inline size_t text_box_display_get_byte_index(TextBox const *impl) {
+inline size_t text_box_display_get_byte_offset(TextBox const *impl) {
     return impl->current_chunk.offset;
 };
 
 
-inline size_t text_box_display_get_next_byte_index(TextBox const *impl) {
-    return text_box_display_get_byte_index(impl)
-        + text_box_display_get_byte_len(impl);
+inline size_t text_box_display_get_next_byte_offset(TextBox const *impl) {
+    return text_box_display_get_byte_offset(impl)
+        + text_box_display_get_byte_count(impl);
 };
 
 
@@ -88,7 +88,7 @@ inline int text_box_display_is_last(TextBox const *impl) {
     if (impl->text == NULL) {
         return 1;
     }
-    size_t next_index = text_box_display_get_next_byte_index(impl);
+    size_t next_index = text_box_display_get_next_byte_offset(impl);
     return impl->text[next_index] == '\0';
 };
 
@@ -143,7 +143,7 @@ inline int text_box_display_next(TextBox *impl) {
     if (text_box_display_is_last(impl)) {
         return 1; // TODO: Return error code
     }
-    size_t next_index = text_box_display_get_next_byte_index(impl);
+    size_t next_index = text_box_display_get_next_byte_offset(impl);
     return text_box_display_from(impl, next_index);
 };
 

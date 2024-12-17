@@ -52,9 +52,9 @@ UPTR(TextBox) text_box_make(TextBoxProps);
 UPTR(char const) text_box_release_and_destroy(UPTR(TextBox));
 
 TextBoxProps text_box_props_get(TextBox const *);
-size_t text_box_display_get_byte_len(TextBox const *);
-size_t text_box_display_get_byte_index(TextBox const *);
-size_t text_box_display_get_next_byte_index(TextBox const *);
+size_t text_box_display_get_byte_count(TextBox const *);
+size_t text_box_display_get_byte_offset(TextBox const *);
+size_t text_box_display_get_next_byte_offset(TextBox const *);
 int text_box_display_is_last(TextBox const *);
 
 int text_box_props_set(TextBox *, TextBoxProps);
