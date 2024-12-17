@@ -9,6 +9,7 @@ EXTERNAL_INCLUDES = \
 EXTERNAL_LIBRARIES = \
 	-L../lib -lraylib-text-box \
 	-L${EXTERNAL_DIR}/raylib/lib -lraylib \
+	-lm
 
 LOCAL_INCLUDES = \
 	-I$(SRC_DIR) \
