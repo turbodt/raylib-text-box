@@ -1,5 +1,5 @@
 LIB_NAME ?= raylib-text-box
-LIB_DIR ?= $(realpath ./lib)
+LIB_DIR ?= $(realpath ./)/lib
 EXTERNAL_DIR ?= $(realpath ./external)
 BIN_DIR ?= $(realpath ./)/bin
 SRC_DIR = ./src
