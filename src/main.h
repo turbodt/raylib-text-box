@@ -7,12 +7,16 @@
 
 
 typedef struct TextBox TextBox;
+typedef struct TextBoxEffectProps TextBoxEffectProps;
+typedef struct TextBoxEffect TextBoxEffect;
+
 typedef enum TextBoxAlignment {
     TEXT_BOX_ALIGNMENT__UNDEF = 1,
     TEXT_BOX_ALIGNMENT__START = 1,
     TEXT_BOX_ALIGNMENT__CENTER,
     TEXT_BOX_ALIGNMENT__END,
 } TextBoxAlignment;
+
 typedef struct TextBoxProps {
     int font_size;
     int spacing;
@@ -24,7 +28,24 @@ typedef struct TextBoxProps {
         TextBoxAlignment vertical;
         TextBoxAlignment line;
     } alignment;
+    TextBoxEffect *effect;
 } TextBoxProps;
+
+struct TextBoxEffect {
+    void (*call)(TextBoxEffectProps);
+};
+
+struct TextBoxEffectProps {
+    TextBoxEffect *effect;
+    TextBoxProps const *text_box_props;
+    size_t display_byte_count;
+    size_t line_byte_count;
+    size_t display_byte_offset;
+    size_t line_byte_offset;
+    size_t codepoint_byte_index;
+    Vector2 tl_pos;
+    int codepoint;
+};
 
 
 UPTR(TextBox) text_box_make(TextBoxProps);
