@@ -4,7 +4,8 @@
 
 typedef struct {
     char const * text;
-    size_t index_count;
+    size_t offset;
+    size_t count;
     Vector2 size;
 } ChunkInfo;
 struct TextBox {
@@ -13,15 +14,19 @@ struct TextBox {
     Vector2 tl_pos;
     Vector2 box_size;
     ChunkInfo current_chunk;
-    size_t current_starts_at;
 };
 
 
-static int recalcule_state(TextBox *);
+static int recalcule_state(TextBox *, size_t);
 static void draw_chunk_at(TextBoxProps const *, ChunkInfo, Vector2);
-static void draw_line_at(TextBoxProps const *, ChunkInfo, Vector2);
-static ChunkInfo calcule_chunk(TextBoxProps const *, Vector2, char const *);
-static ChunkInfo calcule_line(TextBoxProps const *, int, char const *);
+static void draw_line_at(TextBoxProps const *, ChunkInfo, ChunkInfo, Vector2);
+static ChunkInfo calcule_chunk(
+    TextBoxProps const *,
+    Vector2,
+    char const *,
+    size_t
+);
+static ChunkInfo calcule_line(TextBoxProps const *, int, char const *, size_t);
 static size_t rtrim_advance(char const *);
 static int get_codepoint_width(Font const, int, float);
 static int get_codepoint_height(Font const, int, int);
@@ -40,10 +45,10 @@ UPTR(TextBox) text_box_make(TextBoxProps props) {
     impl->box_size = (Vector2){0,0};
     impl->tl_pos = (Vector2){0,0};
     impl->text = NULL;
-    impl->current_starts_at = 0;
     impl->current_chunk = (ChunkInfo) {
         .text = NULL,
-        .index_count = 0,
+        .offset = 0,
+        .count = 0,
         .size = (Vector2){0,0},
     };
 
@@ -63,19 +68,19 @@ inline TextBoxProps text_box_props_get(TextBox const *impl) {
 };
 
 
-inline size_t text_box_display_get_byte_len(TextBox const *impl) {
-    return impl->current_chunk.index_count;
+inline size_t text_box_display_get_byte_count(TextBox const *impl) {
+    return impl->current_chunk.count;
 };
 
 
-inline size_t text_box_display_get_byte_index(TextBox const *impl) {
-    return impl->current_starts_at;
+inline size_t text_box_display_get_byte_offset(TextBox const *impl) {
+    return impl->current_chunk.offset;
 };
 
 
-inline size_t text_box_display_get_next_byte_index(TextBox const *impl) {
-    return text_box_display_get_byte_index(impl)
-        + text_box_display_get_byte_len(impl);
+inline size_t text_box_display_get_next_byte_offset(TextBox const *impl) {
+    return text_box_display_get_byte_offset(impl)
+        + text_box_display_get_byte_count(impl);
 };
 
 
@@ -83,10 +88,19 @@ inline int text_box_display_is_last(TextBox const *impl) {
     if (impl->text == NULL) {
         return 1;
     }
-    size_t next_index = text_box_display_get_next_byte_index(impl);
+    size_t next_index = text_box_display_get_next_byte_offset(impl);
     return impl->text[next_index] == '\0';
 };
 
+
+inline TextBoxEffect const * text_box_effect_getc(TextBox const *impl) {
+    return impl->props.effect;
+};
+
+
+inline TextBoxEffect * text_box_effect_get(TextBox *impl) {
+    return impl->props.effect;
+};
 
 inline int text_box_props_set(TextBox *impl, TextBoxProps props) {
     int should_recalcule =
@@ -102,16 +116,15 @@ inline int text_box_props_set(TextBox *impl, TextBoxProps props) {
         return 0;
     }
 
-    return recalcule_state(impl);
+    return recalcule_state(impl, impl->current_chunk.offset);
 };
 
 
 UPTR(char const) text_box_text_update(TextBox *impl, UPTR(char const)new_text) {
     char const * text = impl->text;
     impl->text = new_text;
-    impl->current_starts_at = 0;
 
-    int err = recalcule_state(impl);
+    int err = recalcule_state(impl, 0);
     if (err) {
         impl->text = text;
         text = new_text;
@@ -126,13 +139,17 @@ inline int text_box_size_set(TextBox *impl, int x, int y, int w, int h) {
     impl->tl_pos.y = y;
     impl->box_size.x = w;
     impl->box_size.y = h;
-    return recalcule_state(impl);
+    return recalcule_state(impl, impl->current_chunk.offset);
+};
+
+
+inline void text_box_color_set(TextBox *impl, Color color) {
+    impl->props.color = color;
 };
 
 
 int text_box_display_from(TextBox *impl, size_t index) {
-    impl->current_starts_at = index;
-    return recalcule_state(impl);
+    return recalcule_state(impl, index);
 };
 
 
@@ -140,7 +157,7 @@ inline int text_box_display_next(TextBox *impl) {
     if (text_box_display_is_last(impl)) {
         return 1; // TODO: Return error code
     }
-    size_t next_index = text_box_display_get_next_byte_index(impl);
+    size_t next_index = text_box_display_get_next_byte_offset(impl);
     return text_box_display_from(impl, next_index);
 };
 
@@ -179,7 +196,7 @@ int text_box_render(TextBox *impl) {
 };
 
 
-int recalcule_state(TextBox *impl) {
+int recalcule_state(TextBox *impl, size_t offset) {
     if (impl->text == NULL) {
         return 1;
     }
@@ -187,7 +204,8 @@ int recalcule_state(TextBox *impl) {
     impl->current_chunk = calcule_chunk(
         &impl->props,
         impl->box_size,
-        &impl->text[impl->current_starts_at]
+        impl->text,
+        offset
     );
 
     return 0;
@@ -199,13 +217,15 @@ void draw_chunk_at(
     ChunkInfo chunk,
     Vector2 tl_pos
 ) {
-    size_t index_count = 0;
+    size_t rel_index = 0;
     Vector2 curr_pos = tl_pos;
-    while (index_count < chunk.index_count) {
+    while (rel_index < chunk.count) {
+        size_t const abs_index = chunk.offset + rel_index;
         ChunkInfo line_info = calcule_line(
             props,
             chunk.size.x,
-            &chunk.text[index_count]
+            chunk.text,
+            abs_index
         );
 
         float line_margin = chunk.size.x - line_info.size.x;
@@ -222,8 +242,8 @@ void draw_chunk_at(
             break;
         };
 
-        draw_line_at(props, line_info, curr_pos);
-        index_count += line_info.index_count;
+        draw_line_at(props, chunk, line_info, curr_pos);
+        rel_index += line_info.count;
         curr_pos.x = tl_pos.x;
         curr_pos.y += line_info.size.y + props->line_spacing;
     }
@@ -232,15 +252,17 @@ void draw_chunk_at(
 
 void draw_line_at(
     TextBoxProps const *props,
+    ChunkInfo const chunk,
     ChunkInfo line_info,
     Vector2 tl_pos
 ) {
     float const scale_factor = (float)props->font_size / props->font.baseSize;
     Vector2 curr_pos = tl_pos;
 
-    size_t line_index_count = rtrim_advance(line_info.text);
-    while (line_index_count < line_info.index_count) {
-        char const * curr_text = &line_info.text[line_index_count];
+    size_t rel_index = rtrim_advance(&line_info.text[line_info.offset]);
+    while (rel_index < line_info.count) {
+        size_t const abs_index = line_info.offset + rel_index;
+        char const * curr_text = &line_info.text[abs_index];
 
         int cp_byte_count = 0;
         int cp = GetCodepointNext(curr_text, &cp_byte_count);
@@ -251,7 +273,9 @@ void draw_line_at(
             scale_factor
         );
 
-        if (!is_codepoint_line_break(cp)) {
+        if (is_codepoint_line_break(cp)) {
+            // Do nothing
+        } else if (props->effect == NULL) {
             DrawTextCodepoint(
                 props->font,
                 cp,
@@ -259,9 +283,22 @@ void draw_line_at(
                 props->font_size,
                 props->color
             );
+        } else {
+            TextBoxEffectProps e_props = {
+                .effect = props->effect,
+                .text_box_props = props,
+                .codepoint = cp,
+                .tl_pos = curr_pos,
+                .display_byte_count = chunk.count,
+                .line_byte_count = line_info.count,
+                .display_byte_offset = chunk.offset,
+                .line_byte_offset = line_info.offset,
+                .codepoint_byte_index = abs_index
+            };
+            props->effect->call(e_props);
         }
         curr_pos.x += cp_width + props->spacing;
-        line_index_count += cp_byte_count;
+        rel_index += cp_byte_count;
     }
 };
 
@@ -269,16 +306,18 @@ void draw_line_at(
 ChunkInfo calcule_chunk(
     TextBoxProps const *props,
     Vector2 const max_size,
-    char const *text
+    char const *text,
+    size_t const offset
 ) {
-    ChunkInfo ret = {.text = text, .index_count=0, .size={0}};
+    ChunkInfo ret = {.text = text, .offset=offset, .count=0, .size={0}};
 
-    ChunkInfo tentative = {.text = text, .index_count=0, .size = {0}};
+    ChunkInfo tentative = ret;
 
     int is_first_printed_line = 1;
     int chunk_must_end = 0;
     while (!chunk_must_end) {
-        char const * const curr_text = &tentative.text[tentative.index_count];
+        size_t const abs_index = tentative.offset + tentative.count;
+        char const * const curr_text = &tentative.text[abs_index];
 
         if (tentative.size.y > max_size.y) {
             chunk_must_end = 1;
@@ -292,8 +331,13 @@ ChunkInfo calcule_chunk(
             continue;
         }
 
-        ChunkInfo line_info = calcule_line(props, max_size.x, curr_text);
-        if (line_info.index_count == 0) {
+        ChunkInfo line_info = calcule_line(
+            props,
+            max_size.x,
+            tentative.text,
+            abs_index
+        );
+        if (line_info.count == 0) {
             chunk_must_end = 1;
             continue;
         }
@@ -305,7 +349,7 @@ ChunkInfo calcule_chunk(
         } else {
             tentative.size.y += props->line_spacing;
         }
-        tentative.index_count += line_info.index_count;
+        tentative.count += line_info.count;
 
     }
     return ret;
@@ -315,20 +359,22 @@ ChunkInfo calcule_chunk(
 ChunkInfo calcule_line(
     TextBoxProps const *props,
     int const max_width,
-    char const *text
+    char const *text,
+    size_t offset
 ) {
     float const scale_factor = (float)props->font_size
         / (float)props->font.baseSize;
 
-    ChunkInfo ret = {.text = text, .index_count=0, .size = {0}};
+    ChunkInfo ret = {.text = text, .offset=offset, .count=0, .size = {0}};
 
     ChunkInfo tentative = ret;
-    tentative.index_count = rtrim_advance(text);
+    tentative.count = rtrim_advance(&text[offset]);
 
     int is_first_printable_char = 1;
     int line_must_end = 0;
     while (!line_must_end) {
-        char const * curr_text = tentative.text + tentative.index_count;
+        size_t const abs_index = tentative.offset + tentative.count;
+        char const * curr_text = &tentative.text[abs_index];
 
         if (tentative.size.x > max_width) {
             line_must_end = 1;
@@ -361,7 +407,7 @@ ChunkInfo calcule_line(
         );
 
         tentative.size.y = MAX(tentative.size.y, cp_height);
-        tentative.index_count += cp_byte_count;
+        tentative.count += cp_byte_count;
 
         if (is_codepoint_line_break(cp)) {
             ret = tentative;
@@ -376,7 +422,7 @@ ChunkInfo calcule_line(
         tentative.size.x += cp_width;
     }
 
-    if (ret.index_count == 0) {
+    if (ret.count == 0) {
         ret = tentative;
     }
 
