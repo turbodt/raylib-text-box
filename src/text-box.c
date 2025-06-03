@@ -143,6 +143,11 @@ inline int text_box_size_set(TextBox *impl, int x, int y, int w, int h) {
 };
 
 
+inline void text_box_color_set(TextBox *impl, Color color) {
+    impl->props.color = color;
+};
+
+
 int text_box_display_from(TextBox *impl, size_t index) {
     return recalcule_state(impl, index);
 };
