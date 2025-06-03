@@ -62,6 +62,7 @@ TextBoxEffect * text_box_effect_get(TextBox *);
 int text_box_props_set(TextBox *, TextBoxProps);
 UPTR(char const) text_box_text_update(TextBox *, UPTR(char const));
 int text_box_size_set(TextBox *, int, int, int, int);
+void text_box_color_set(TextBox *, Color);
 int text_box_display_from(TextBox *, size_t);
 int text_box_display_next(TextBox *);
 
